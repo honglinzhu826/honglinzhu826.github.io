@@ -10,14 +10,14 @@ lastUpdated: 2026-03-01
 ## 技能
 
 - **编程语言**: Python, C/C++
-- **工具与平台**: Git, Vibe Coding, Linux，MCU RTOS
+- **工具与平台**: Git, Vibe Coding, Linux, MCU RTOS
 
 ## 工作经历
 
-### 高级前端工程师 | 科技公司
+### 嵌入式软件开发工程师 | 小马智行
 *2021.8 - 至今*
 
-- 负责HIL（硬件在环）系统设计和搭建
+- 负责早期HIL（硬件在环）系统设计和搭建
 - 设计和实现网络相机客户端驱动模块
 - MCU全栈开发，包括RTOS和BSP驱动和中间件
 
