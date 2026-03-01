@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { open } from '@tauri-apps/plugin-dialog';
-import { FolderOpen, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { FolderOpen, Loader2, AlertCircle } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';
 
 export function ProjectSetup() {

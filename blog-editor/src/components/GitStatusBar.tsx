@@ -5,7 +5,6 @@ import {
   Upload,
   Loader2,
   CheckCircle,
-  AlertCircle,
   Clock,
 } from 'lucide-react';
 import { useEditorStore } from '../store/editorStore';

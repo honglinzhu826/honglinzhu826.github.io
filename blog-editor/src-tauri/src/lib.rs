@@ -1,9 +1,7 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use tauri::{AppHandle, Manager};
-use walkdir::WalkDir;
 
 // Types
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -358,17 +356,22 @@ async fn get_last_sync_time(project_path: String) -> Result<Option<String>, Stri
     let repo = git2::Repository::open(&project_path)
         .map_err(|e| format!("Failed to open repository: {}", e))?;
 
-    match repo.head() {
-        Ok(head) => {
-            let oid = head.target().ok_or("No target")?;
-            let commit = repo.find_commit(oid).map_err(|e| e.to_string())?;
-            let time = commit.time();
-            let datetime = chrono::DateTime::from_timestamp(time.seconds(), 0)
-                .ok_or("Invalid timestamp")?;
-            Ok(Some(datetime.format("%Y-%m-%d %H:%M:%S").to_string()))
-        }
-        Err(_) => Ok(None),
-    }
+    // Get the oid first, then drop the head reference
+    let oid = match repo.head() {
+        Ok(head) => head.target(),
+        Err(_) => return Ok(None),
+    };
+
+    let oid = match oid {
+        Some(oid) => oid,
+        None => return Err("No target".to_string()),
+    };
+
+    let commit = repo.find_commit(oid).map_err(|e| e.to_string())?;
+    let time = commit.time();
+    let datetime = chrono::DateTime::from_timestamp(time.seconds(), 0)
+        .ok_or("Invalid timestamp")?;
+    Ok(Some(datetime.format("%Y-%m-%d %H:%M:%S").to_string()))
 }
 
 // Get app data directory

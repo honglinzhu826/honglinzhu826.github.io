@@ -6,7 +6,6 @@ import {
   FolderOpen,
   FileText,
   Plus,
-  FileEdit,
 } from 'lucide-react';
 import { FileNode } from '../types';
 import { useEditorStore } from '../store/editorStore';
@@ -31,7 +30,6 @@ function FileTreeNode({
 
   const isContentRoot =
     node.name === 'blog' || node.name === 'thoughts' || node.name === 'resume';
-  const isLangDir = node.name === 'zh' || node.name === 'en';
 
   const getIcon = () => {
     if (node.is_dir) {

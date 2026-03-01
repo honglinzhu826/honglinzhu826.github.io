@@ -4,7 +4,6 @@ import {
   Eye,
   EyeOff,
   Save,
-  Settings,
   FolderOpen,
   Loader2,
 } from 'lucide-react';
@@ -25,12 +24,6 @@ export function Header() {
     setIsSaving(true);
     await saveFile();
     setIsSaving(false);
-  };
-
-  const getFileName = () => {
-    if (!currentFile) return 'No file selected';
-    const parts = currentFile.split('/');
-    return parts[parts.length - 1];
   };
 
   const getFilePath = () => {
