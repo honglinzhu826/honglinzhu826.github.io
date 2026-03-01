@@ -1,0 +1,74 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import { getLangFromUrl, useTranslations } from '../../../i18n/utils';
+
+// Generate static paths for all blog posts
+export async function getStaticPaths() {
+  const posts = await getCollection('blog');
+
+  return posts.map(post => {
+    const [lang, ...slugParts] = post.id.split('/');
+    const slug = slugParts.join('/').replace('.md', '');
+    return {
+      params: { lang, slug },
+      props: { post }
+    };
+  });
+}
+
+const { post } = Astro.props;
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+const { Content } = await render(post);
+
+function formatDate(date: Date): string {
+  return new Intl.DateTimeFormat(lang === 'zh' ? 'zh-CN' : 'en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  }).format(date);
+}
+---
+
+<BaseLayout title={post.data.title} description={post.data.description}>
+  <article>
+    <header>
+      <h1>{post.data.title}</h1>
+      <div class="post-meta">
+        <time>{t('published.on')} {formatDate(post.data.pubDate)}</time>
+      </div>
+      {post.data.tags && post.data.tags.length > 0 && (
+        <div class="post-tags">
+          <span>{t('tags')}:</span>
+          {post.data.tags.map(tag => (
+            <span class="tag">{tag}</span>
+          ))}
+        </div>
+      )}
+    </header>
+    <div class="prose">
+      <Content />
+    </div>
+  </article>
+
+  <nav class="post-nav">
+    <a href={`/${lang}/blog/`}>← {t('blog.title')}</a>
+  </nav>
+</BaseLayout>
+
+<style>
+  .post-tags {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+  }
+
+  .post-nav {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--color-border);
+  }
+</style>
