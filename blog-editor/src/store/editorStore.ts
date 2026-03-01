@@ -2,6 +2,15 @@ import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
 import { FileNode, GitStatus, ProjectConfig, NewFileRequest } from '../types';
 
+interface DiagnosticsResult {
+  project_path: string;
+  content_path: string;
+  content_path_exists: boolean;
+  can_read_dir: boolean;
+  dir_entries: string[];
+  errors: string[];
+}
+
 interface EditorStore {
   // State
   projectPath: string | null;
@@ -15,6 +24,7 @@ interface EditorStore {
   isLoading: boolean;
   error: string | null;
   showPreview: boolean;
+  diagnostics: DiagnosticsResult | null;
 
   // Actions
   setProjectPath: (path: string | null) => void;
@@ -22,12 +32,14 @@ interface EditorStore {
   setCurrentContent: (content: string) => void;
   setShowPreview: (show: boolean) => void;
   clearError: () => void;
+  clearDiagnostics: () => void;
 
   // Async actions
   loadProjectConfig: () => Promise<void>;
   saveProjectConfig: (path: string) => Promise<void>;
   validateAndSetProject: (path: string) => Promise<boolean>;
   loadFileTree: () => Promise<void>;
+  runDiagnostics: () => Promise<void>;
   loadFile: (path: string) => Promise<void>;
   saveFile: () => Promise<void>;
   createNewFile: (request: NewFileRequest) => Promise<string | null>;
@@ -48,6 +60,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   isLoading: false,
   error: null,
   showPreview: true,
+  diagnostics: null,
 
   // Actions
   setProjectPath: (path) => set({ projectPath: path }),
@@ -78,6 +91,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
   setShowPreview: (show) => set({ showPreview: show }),
 
   clearError: () => set({ error: null }),
+  clearDiagnostics: () => set({ diagnostics: null }),
 
   // Async actions
   loadProjectConfig: async () => {
@@ -125,14 +139,43 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
 
   loadFileTree: async () => {
     const { projectPath } = get();
-    if (!projectPath) return;
+    if (!projectPath) {
+      console.error('loadFileTree: No project path set');
+      set({ error: 'No project path set' });
+      return;
+    }
+
+    console.log('Loading file tree for:', projectPath);
+    set({ isLoading: true, error: null });
+    try {
+      const tree: FileNode = await invoke('get_file_tree', { projectPath });
+      console.log('File tree loaded successfully:', tree);
+      set({ fileTree: tree });
+    } catch (err) {
+      const errorMsg = String(err);
+      console.error('Failed to load file tree:', errorMsg);
+      set({ error: errorMsg });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  runDiagnostics: async () => {
+    const { projectPath } = get();
+    if (!projectPath) {
+      set({ error: 'No project path set for diagnostics' });
+      return;
+    }
 
     set({ isLoading: true });
     try {
-      const tree: FileNode = await invoke('get_file_tree', { projectPath });
-      set({ fileTree: tree });
+      const result: DiagnosticsResult = await invoke('diagnose_file_tree', { projectPath });
+      console.log('Diagnostics result:', result);
+      set({ diagnostics: result });
     } catch (err) {
-      set({ error: String(err) });
+      const errorMsg = String(err);
+      console.error('Diagnostics failed:', errorMsg);
+      set({ error: errorMsg });
     } finally {
       set({ isLoading: false });
     }

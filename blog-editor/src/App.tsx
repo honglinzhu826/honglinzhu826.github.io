@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ProjectSetup } from './components/ProjectSetup';
 import { Header } from './components/Header';
 import { FileTree } from './components/FileTree';
@@ -9,10 +9,49 @@ import { useEditorStore } from './store/editorStore';
 
 function App() {
   const { projectPath, loadProjectConfig } = useEditorStore();
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
-    loadProjectConfig();
+    const init = async () => {
+      await loadProjectConfig();
+      setIsInitializing(false);
+    };
+    init();
   }, [loadProjectConfig]);
+
+  // Show loading state while initializing
+  if (isInitializing) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100vh',
+          background: '#0f172a',
+          color: '#e2e8f0',
+        }}
+      >
+        <div style={{
+          width: '48px',
+          height: '48px',
+          border: '4px solid rgba(102, 126, 234, 0.3)',
+          borderTop: '4px solid #667eea',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+          marginBottom: '1rem'
+        }} />
+        <p>Loading...</p>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   if (!projectPath) {
     return <ProjectSetup />;

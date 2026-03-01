@@ -3,6 +3,13 @@ use std::fs;
 use std::path::Path;
 use tauri::{AppHandle, Manager};
 
+// Add logging macro for debug output
+macro_rules! debug_log {
+    ($($arg:tt)*) => {
+        eprintln!("[BlogEditor] {}", format!($($arg)*))
+    };
+}
+
 // Types
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FileNode {
@@ -39,78 +46,184 @@ pub struct NewFileRequest {
     pub description: Option<String>,
 }
 
+// Diagnostics response
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DiagnosticsResult {
+    pub project_path: String,
+    pub content_path: String,
+    pub content_path_exists: bool,
+    pub can_read_dir: bool,
+    pub dir_entries: Vec<String>,
+    pub errors: Vec<String>,
+}
+
 // Project validation
 #[tauri::command]
 async fn validate_project(path: String) -> Result<bool, String> {
+    debug_log!("Validating project path: {}", path);
     let path = Path::new(&path);
 
+    let astro_config = path.join("astro.config.mjs");
+    debug_log!("Checking astro.config.mjs: {:?} exists={}", astro_config, astro_config.exists());
+
+    let content_dir = path.join("src/content");
+    debug_log!("Checking src/content: {:?} exists={}", content_dir, content_dir.exists());
+
     // Check for astro.config.mjs
-    if !path.join("astro.config.mjs").exists() {
+    if !astro_config.exists() {
+        debug_log!("astro.config.mjs not found");
         return Ok(false);
     }
 
     // Check for src/content/ directory
-    if !path.join("src/content").exists() {
+    if !content_dir.exists() {
+        debug_log!("src/content not found");
         return Ok(false);
     }
 
     // Check package.json for astro dependency
     let package_json_path = path.join("package.json");
     if package_json_path.exists() {
-        if let Ok(content) = fs::read_to_string(package_json_path) {
+        if let Ok(content) = fs::read_to_string(&package_json_path) {
+            debug_log!("package.json found, length: {} bytes", content.len());
             if content.contains("astro") {
+                debug_log!("Project validation passed");
                 return Ok(true);
+            } else {
+                debug_log!("package.json does not contain 'astro'");
             }
+        } else {
+            debug_log!("Failed to read package.json");
         }
+    } else {
+        debug_log!("package.json not found");
     }
 
     Ok(false)
 }
 
+// Diagnostics command to troubleshoot file tree issues
+#[tauri::command]
+async fn diagnose_file_tree(project_path: String) -> Result<DiagnosticsResult, String> {
+    debug_log!("Running diagnostics for path: {}", project_path);
+
+    let mut errors = Vec::new();
+    let mut dir_entries = Vec::new();
+
+    let content_path = Path::new(&project_path).join("src/content");
+    let content_path_str = content_path.to_string_lossy().to_string();
+
+    debug_log!("Content path: {:?}", content_path);
+
+    let content_path_exists = content_path.exists();
+    debug_log!("Content path exists: {}", content_path_exists);
+
+    let can_read_dir = if content_path_exists {
+        match fs::read_dir(&content_path) {
+            Ok(entries) => {
+                for entry in entries {
+                    match entry {
+                        Ok(e) => {
+                            let name = e.file_name().to_string_lossy().to_string();
+                            let is_dir = e.file_type().map(|t| t.is_dir()).unwrap_or(false);
+                            dir_entries.push(format!("{} (dir={})", name, is_dir));
+                            debug_log!("Found entry: {} dir={}", name, is_dir);
+                        }
+                        Err(e) => {
+                            errors.push(format!("Error reading entry: {}", e));
+                        }
+                    }
+                }
+                true
+            }
+            Err(e) => {
+                errors.push(format!("Cannot read directory: {}", e));
+                false
+            }
+        }
+    } else {
+        errors.push("Content path does not exist".to_string());
+        false
+    };
+
+    Ok(DiagnosticsResult {
+        project_path,
+        content_path: content_path_str,
+        content_path_exists,
+        can_read_dir,
+        dir_entries,
+        errors,
+    })
+}
+
 // Get file tree for blog content
 #[tauri::command]
 async fn get_file_tree(project_path: String) -> Result<FileNode, String> {
+    debug_log!("Getting file tree for: {}", project_path);
     let content_path = Path::new(&project_path).join("src/content");
 
+    debug_log!("Content path: {:?}", content_path);
+
     if !content_path.exists() {
-        return Err("Content directory not found".to_string());
+        debug_log!("ERROR: Content directory not found at {:?}", content_path);
+        return Err(format!("Content directory not found at: {:?}", content_path));
     }
 
-    fn build_tree(path: &Path, base_path: &Path) -> Result<FileNode, String> {
+    if !content_path.is_dir() {
+        debug_log!("ERROR: Content path is not a directory");
+        return Err("Content path is not a directory".to_string());
+    }
+
+    fn build_tree(path: &Path, project_path: &Path) -> Result<FileNode, String> {
         let name = path
             .file_name()
             .unwrap_or_default()
             .to_string_lossy()
             .to_string();
 
+        // Calculate relative path from project root
         let relative_path = path
-            .strip_prefix(base_path.parent().unwrap_or(base_path))
-            .unwrap_or(path)
-            .to_string_lossy()
-            .to_string();
+            .strip_prefix(project_path)
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|_| name.clone());
 
-        let metadata = fs::metadata(path).map_err(|e| e.to_string())?;
+        debug_log!("Building tree for: {:?} -> relative: {}", path, relative_path);
+
+        let metadata = fs::metadata(path)
+            .map_err(|e| format!("Cannot read metadata for {:?}: {}", path, e))?;
         let is_dir = metadata.is_dir();
 
         let children = if is_dir {
             let mut children = Vec::new();
-            for entry in fs::read_dir(path).map_err(|e| e.to_string())? {
-                let entry = entry.map_err(|e| e.to_string())?;
+            let entries = fs::read_dir(path)
+                .map_err(|e| format!("Cannot read directory {:?}: {}", path, e))?;
+
+            for entry in entries {
+                let entry = entry
+                    .map_err(|e| format!("Error reading entry in {:?}: {}", path, e))?;
                 let child_path = entry.path();
 
                 // Skip hidden files and node_modules
-                if let Some(name) = child_path.file_name() {
-                    let name_str = name.to_string_lossy();
+                if let Some(fname) = child_path.file_name() {
+                    let name_str = fname.to_string_lossy();
                     if name_str.starts_with('.') || name_str == "node_modules" {
                         continue;
                     }
                 }
 
                 // Only include .md files and directories
-                if child_path.is_dir() || child_path.extension().map(|e| e == "md").unwrap_or(false)
-                {
-                    if let Ok(child) = build_tree(&child_path, base_path) {
-                        children.push(child);
+                let include = child_path.is_dir()
+                    || child_path.extension().map(|e| e == "md").unwrap_or(false);
+
+                if include {
+                    match build_tree(&child_path, project_path) {
+                        Ok(child) => {
+                            children.push(child);
+                        }
+                        Err(e) => {
+                            debug_log!("Warning: failed to build tree for {:?}: {}", child_path, e);
+                            // Continue with other entries instead of failing entirely
+                        }
                     }
                 }
             }
@@ -135,7 +248,14 @@ async fn get_file_tree(project_path: String) -> Result<FileNode, String> {
         })
     }
 
-    build_tree(&content_path, &content_path)
+    // Build tree starting from content_path, but use parent (project root) as base for relative paths
+    let result = build_tree(&content_path, Path::new(&project_path));
+    match &result {
+        Ok(node) => debug_log!("File tree built successfully with {} children",
+            node.children.as_ref().map(|c| c.len()).unwrap_or(0)),
+        Err(e) => debug_log!("ERROR building file tree: {}", e),
+    }
+    result
 }
 
 // Read file content
@@ -431,6 +551,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
             validate_project,
+            diagnose_file_tree,
             get_file_tree,
             read_file,
             write_file,

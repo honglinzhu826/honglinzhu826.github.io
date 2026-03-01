@@ -6,6 +6,8 @@ import {
   FolderOpen,
   FileText,
   Plus,
+  AlertCircle,
+  Bug,
 } from 'lucide-react';
 import { FileNode } from '../types';
 import { useEditorStore } from '../store/editorStore';
@@ -218,7 +220,7 @@ function FileTreeNode({
 }
 
 export function FileTree() {
-  const { fileTree, setCurrentFile, currentFile, loadFileTree } = useEditorStore();
+  const { fileTree, setCurrentFile, currentFile, loadFileTree, error, runDiagnostics, diagnostics, clearDiagnostics, projectPath } = useEditorStore();
   const [showNewFileDialog, setShowNewFileDialog] = useState(false);
   const [newFileContentType, setNewFileContentType] = useState<'blog' | 'thoughts'>('blog');
   const [newFileLanguage, setNewFileLanguage] = useState<'zh' | 'en'>('zh');
@@ -251,17 +253,241 @@ export function FileTree() {
     }
   };
 
+  // Show error state with diagnostics
+  if (error) {
+    return (
+      <div style={{ padding: '1rem' }}>
+        <div
+          style={{
+            padding: '1rem',
+            background: 'rgba(239, 68, 68, 0.1)',
+            borderRadius: '8px',
+            color: '#ef4444',
+            fontSize: '0.875rem',
+            marginBottom: '1rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <AlertCircle size={16} />
+            <strong>Error loading files:</strong>
+          </div>
+          <div style={{ wordBreak: 'break-all' }}>{error}</div>
+        </div>
+
+        {projectPath && (
+          <button
+            onClick={() => runDiagnostics()}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              width: '100%',
+              padding: '0.75rem',
+              background: 'rgba(102, 126, 234, 0.2)',
+              border: '1px solid rgba(102, 126, 234, 0.5)',
+              borderRadius: '8px',
+              color: '#667eea',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+              marginBottom: '1rem',
+            }}
+          >
+            <Bug size={16} />
+            Run Diagnostics
+          </button>
+        )}
+
+        {diagnostics && (
+          <div
+            style={{
+              padding: '1rem',
+              background: '#1e293b',
+              borderRadius: '8px',
+              fontSize: '0.75rem',
+              color: '#94a3b8',
+              marginBottom: '1rem',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <strong style={{ color: '#fff' }}>Diagnostics Results</strong>
+              <button
+                onClick={() => clearDiagnostics()}
+                style={{
+                  padding: '2px 6px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                }}
+              >
+                Clear
+              </button>
+            </div>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <strong>Project path:</strong> {diagnostics.project_path}
+            </div>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <strong>Content path:</strong> {diagnostics.content_path}
+            </div>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <strong>Content path exists:</strong>{' '}
+              <span style={{ color: diagnostics.content_path_exists ? '#22c55e' : '#ef4444' }}>
+                {diagnostics.content_path_exists ? 'Yes' : 'No'}
+              </span>
+            </div>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <strong>Can read directory:</strong>{' '}
+              <span style={{ color: diagnostics.can_read_dir ? '#22c55e' : '#ef4444' }}>
+                {diagnostics.can_read_dir ? 'Yes' : 'No'}
+              </span>
+            </div>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <strong>Directory entries ({diagnostics.dir_entries.length}):</strong>
+              {diagnostics.dir_entries.length > 0 ? (
+                <ul style={{ margin: '0.25rem 0', paddingLeft: '1.5rem' }}>
+                  {diagnostics.dir_entries.map((entry, i) => (
+                    <li key={i}>{entry}</li>
+                  ))}
+                </ul>
+              ) : (
+                ' None'
+              )}
+            </div>
+            {diagnostics.errors.length > 0 && (
+              <div>
+                <strong style={{ color: '#ef4444' }}>Errors ({diagnostics.errors.length}):</strong>
+                <ul style={{ margin: '0.25rem 0', paddingLeft: '1.5rem', color: '#ef4444' }}>
+                  {diagnostics.errors.map((err, i) => (
+                    <li key={i}>{err}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        <button
+          onClick={() => loadFileTree()}
+          style={{
+            padding: '0.5rem 1rem',
+            background: 'rgba(102, 126, 234, 0.2)',
+            border: '1px solid rgba(102, 126, 234, 0.5)',
+            borderRadius: '6px',
+            color: '#fff',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+          }}
+        >
+          Retry Load
+        </button>
+      </div>
+    );
+  }
+
   if (!fileTree) {
     return (
-      <div
-        style={{
-          padding: '1rem',
-          color: '#64748b',
-          textAlign: 'center',
-          fontSize: '0.875rem',
-        }}
-      >
-        No files found
+      <div style={{ padding: '1rem' }}>
+        <div
+          style={{
+            padding: '1rem',
+            color: '#64748b',
+            textAlign: 'center',
+            fontSize: '0.875rem',
+          }}
+        >
+          No files found
+        </div>
+
+        {projectPath && (
+          <button
+            onClick={() => runDiagnostics()}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              width: '100%',
+              padding: '0.75rem',
+              background: 'rgba(102, 126, 234, 0.2)',
+              border: '1px solid rgba(102, 126, 234, 0.5)',
+              borderRadius: '8px',
+              color: '#667eea',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+              marginBottom: '1rem',
+            }}
+          >
+            <Bug size={16} />
+            Run Diagnostics
+          </button>
+        )}
+
+        {diagnostics && (
+          <div
+            style={{
+              padding: '1rem',
+              background: '#1e293b',
+              borderRadius: '8px',
+              fontSize: '0.75rem',
+              color: '#94a3b8',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <strong style={{ color: '#fff' }}>Diagnostics Results</strong>
+              <button
+                onClick={() => clearDiagnostics()}
+                style={{
+                  padding: '2px 6px',
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                }}
+              >
+                Clear
+              </button>
+            </div>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <strong>Project path:</strong> {diagnostics.project_path}
+            </div>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <strong>Content path:</strong> {diagnostics.content_path}
+            </div>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <strong>Content path exists:</strong>{' '}
+              <span style={{ color: diagnostics.content_path_exists ? '#22c55e' : '#ef4444' }}>
+                {diagnostics.content_path_exists ? 'Yes' : 'No'}
+              </span>
+            </div>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <strong>Can read directory:</strong>{' '}
+              <span style={{ color: diagnostics.can_read_dir ? '#22c55e' : '#ef4444' }}>
+                {diagnostics.can_read_dir ? 'Yes' : 'No'}
+              </span>
+            </div>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <strong>Directory entries ({diagnostics.dir_entries.length}):</strong>
+              {diagnostics.dir_entries.length > 0 ? (
+                <ul style={{ margin: '0.25rem 0', paddingLeft: '1.5rem' }}>
+                  {diagnostics.dir_entries.map((entry, i) => (
+                    <li key={i}>{entry}</li>
+                  ))}
+                </ul>
+              ) : (
+                ' None'
+              )}
+            </div>
+            {diagnostics.errors.length > 0 && (
+              <div>
+                <strong style={{ color: '#ef4444' }}>Errors ({diagnostics.errors.length}):</strong>
+                <ul style={{ margin: '0.25rem 0', paddingLeft: '1.5rem', color: '#ef4444' }}>
+                  {diagnostics.errors.map((err, i) => (
+                    <li key={i}>{err}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }
