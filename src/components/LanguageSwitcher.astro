@@ -1,0 +1,22 @@
+---
+import { languages, type Lang } from '../i18n/ui';
+import { getLangFromUrl, getRouteFromUrl } from '../i18n/utils';
+
+const currentLang = getLangFromUrl(Astro.url);
+---
+
+<div class="lang-switcher">
+  {Object.entries(languages).map(([lang, label]) => {
+    const isActive = currentLang === lang;
+    const href = getRouteFromUrl(Astro.url, lang as Lang);
+    return (
+      <a
+        href={href}
+        class={`lang-link ${isActive ? 'active' : ''}`}
+        aria-current={isActive ? 'true' : undefined}
+      >
+        {label}
+      </a>
+    );
+  })}
+</div>

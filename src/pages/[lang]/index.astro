@@ -1,0 +1,45 @@
+---
+import { getCollection, render } from 'astro:content';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { getLangFromUrl, useTranslations } from '../../i18n/utils';
+import type { Lang } from '../../i18n/ui';
+
+// Generate static paths for all supported languages
+export function getStaticPaths() {
+  const languages: Lang[] = ['zh', 'en'];
+  return languages.map(lang => ({ params: { lang } }));
+}
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+// Get resume content for current language
+const resumeEntries = await getCollection('resume');
+const resume = resumeEntries.find(entry => entry.id === lang || entry.id === `${lang}.md`);
+
+let Content;
+if (resume) {
+  const rendered = await render(resume);
+  Content = rendered.Content;
+}
+---
+
+<BaseLayout title={t('nav.home')}>
+  {resume ? (
+    <article class="prose">
+      {Content && <Content />}
+    </article>
+  ) : (
+    <div class="placeholder">
+      <h1>Welcome</h1>
+      <p>Resume content coming soon...</p>
+    </div>
+  )}
+</BaseLayout>
+
+<style>
+  .placeholder {
+    text-align: center;
+    padding: 3rem 0;
+  }
+</style>

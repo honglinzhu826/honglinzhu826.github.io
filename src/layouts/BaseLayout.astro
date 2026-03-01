@@ -1,0 +1,40 @@
+---
+import '../styles/global.css';
+import Navigation from '../components/Navigation.astro';
+import { getLangFromUrl, useTranslations } from '../i18n/utils';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description = 'Personal blog and portfolio' } = Astro.props;
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+const siteTitle = title ? `${title} | Honglin Zhu` : 'Honglin Zhu';
+---
+
+<!DOCTYPE html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{siteTitle}</title>
+  </head>
+  <body>
+    <Navigation />
+    <main>
+      <div class="container">
+        <slot />
+      </div>
+    </main>
+    <footer>
+      <div class="container">
+        <p>&copy; {new Date().getFullYear()} Honglin Zhu. All rights reserved.</p>
+      </div>
+    </footer>
+  </body>
+</html>
