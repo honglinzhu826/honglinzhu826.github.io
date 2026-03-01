@@ -1,46 +1,44 @@
 ---
 title: "Honglin Zhu - Resume"
-lastUpdated: 2024-01-15
+lastUpdated: 2026-03-01
 ---
 
 ## About Me
 
-Hello! I'm Honglin Zhu, a passionate developer who loves building high-quality, user-friendly web applications.
+I'm Honglin Zhu, INTP, lifelong learner, interested in LLM, AGENT and investment. Currently working as an Embedded Software Development Engineer at PONY.AI. Feel free to contact me if you have any interesting projects.
 
 ## Skills
 
-- **Languages**: Python, JavaScript/TypeScript, Go
-- **Frontend**: React, Vue, Astro, Tailwind CSS
-- **Backend**: Node.js, FastAPI, Django
-- **Databases**: PostgreSQL, MongoDB, Redis
-- **Tools & Platforms**: Git, Docker, AWS, Linux
+- **Programming Languages**: Python, C/C++
+- **Tools & Platforms**: Git, Vibe Coding, Linux, MCU RTOS
 
 ## Experience
 
-### Senior Frontend Engineer | Tech Company
-*2021 - Present*
+### Embedded Software Development Engineer | PONY.AI
+*Aug 2021 - Present*
 
-- Led frontend architecture design for core products
-- Managed team delivery of multiple large-scale projects
-- Optimized application performance and user experience
+- Responsible for HIL (Hardware-in-the-Loop) system design and implementation
+- Designed and implemented network camera client driver module
+- MCU full-stack development, including RTOS, BSP drivers, and middleware
 
-### Full Stack Developer | Startup
-*2019 - 2021*
+### IT System Platform Technology & OS Application Development | Dongfeng Nissan Passenger Vehicle Company
+*Jul 2020 - Jul 2021*
 
-- Built products from 0 to 1
-- Designed and implemented RESTful APIs
-- Set up CI/CD pipelines
+- Developed intelligent cockpit recommendation system based on machine learning (including music recommendation, ambient recommendation, etc.)
 
 ## Education
 
-**B.S. Computer Science** | University Name
-*2015 - 2019*
+**B.S. Automation** | Harbin Engineering University
+*2016 - 2020*
+
+- Mathematical Modeling: First Prize in Mathematical Contest in Modeling (USA), First Prize in Northeast China Mathematical Modeling Contest, First Prize in China Undergraduate Mathematical Contest in Modeling
+- Graduation Thesis: Research on Visual SLAM Algorithm Based on Deep Learning
 
 ## Contact
 
 - GitHub: [honglinzhu826](https://github.com/honglinzhu826)
-- Email: your.email@example.com
+- Email: honglinzhu233@gmail.com
 
 ---
 
-*Last updated: January 2024*
+*Last updated: March 2026*
